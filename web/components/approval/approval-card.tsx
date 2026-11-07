@@ -21,7 +21,7 @@ export type ApprovalView = {
   hook_ready: boolean;
 };
 
-export function ApprovalCard({ approval, agentName }: { approval: ApprovalView; agentName: string }) {
+export function ApprovalCard({ approval, agentName, onDone }: { approval: ApprovalView; agentName: string; onDone?: () => void }) {
   const [note, setNote] = useState("");
   const [telling, setTelling] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -43,7 +43,10 @@ export function ApprovalCard({ approval, agentName }: { approval: ApprovalView; 
     const body = (await response.json().catch(() => ({}))) as { error?: string; warning?: string };
     setBusy(false);
     if (!response.ok) setError(body.error ?? "That did not go through.");
-    else if (body.warning) setError(body.warning);
+    else {
+      if (body.warning) setError(body.warning);
+      onDone?.();
+    }
   }
 
   return (

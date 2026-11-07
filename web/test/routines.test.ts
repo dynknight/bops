@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { initialNextRun, nextRunAfter, parseCadence, zonedTimeToUtc } from "../lib/routines/schedule";
+import { formatInTimeZone, initialNextRun, nextRunAfter, parseCadence, zonedTimeToUtc } from "../lib/routines/schedule";
 
 test("daily 9:00 America/Los_Angeles is stored as UTC across daylight saving", () => {
   const winter = zonedTimeToUtc(2026, 1, 15, 9, 0, "America/Los_Angeles");
@@ -32,4 +32,13 @@ test("a new routine's first slot is in the future", () => {
   const now = new Date("2026-11-07T16:10:00.000Z");
   const first = initialNextRun(now, { kind: "interval", minutes: 15 });
   assert.ok(first.getTime() > now.getTime());
+});
+
+test("daily 9:00 PT is 17:00 UTC in November, and the label says 9:00 PT", () => {
+  const beforeNine = new Date("2026-11-08T09:00:00.000Z");
+  const next = initialNextRun(beforeNine, { kind: "daily_at", hour: 9, minute: 0 });
+  assert.equal(next.toISOString(), "2026-11-08T17:00:00.000Z");
+  assert.equal(formatInTimeZone(next, "America/Los_Angeles"), "11/8/2026, 9:00 AM PT");
+  const afterNine = new Date("2026-11-08T17:30:00.000Z");
+  assert.equal(initialNextRun(afterNine, { kind: "daily_at", hour: 9, minute: 0 }).toISOString(), "2026-11-09T17:00:00.000Z");
 });

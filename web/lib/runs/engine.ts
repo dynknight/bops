@@ -85,21 +85,26 @@ export async function advanceRun(store: RunStore, runId: string, deps: EngineDep
     tokenCount: run.tokenCount + completion.inputTokens + completion.outputTokens,
     progress: "Thinking",
   };
-  await store.addUsage({
-    ownerId: run.ownerId,
-    runId: run.id,
-    provider: completion.provider,
-    model: completion.model,
-    inputTokens: completion.inputTokens,
-    outputTokens: completion.outputTokens,
-  });
+  let usageError: string | null = null;
+  try {
+    await store.addUsage({
+      ownerId: run.ownerId,
+      runId: run.id,
+      provider: completion.provider,
+      model: completion.model,
+      inputTokens: completion.inputTokens,
+      outputTokens: completion.outputTokens,
+    });
+  } catch (error) {
+    usageError = error instanceof Error ? error.message : "Usage was not recorded.";
+  }
   await store.addStep({
     runId: run.id,
     idx: stepped.stepCount,
     kind: "model",
     name: `${completion.provider}/${completion.model}`,
-    status: "succeeded",
-    output: { text: completion.text, toolCalls: completion.toolCalls.map((call) => call.name) },
+    status: usageError ? "usage_failed" : "succeeded",
+    output: { text: completion.text, toolCalls: completion.toolCalls.map((call) => call.name), usageError },
   });
 
   if (stepped.tokenCount >= LIMITS.maxTokens) return fail(store, stepped, "Token limit reached.");

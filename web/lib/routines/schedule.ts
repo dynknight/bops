@@ -100,3 +100,13 @@ export function nextRunAfter(from: Date, now: Date, cadence: Cadence, timeZone =
 export function initialNextRun(now: Date, cadence: Cadence, timeZone = ROUTINE_TIME_ZONE): Date {
   return nextRunAfter(new Date(now.getTime() - 1000), now, cadence, timeZone);
 }
+
+/** Wall-clock label in the routine's zone. The stored instant stays UTC. */
+export function formatInTimeZone(date: Date, timeZone = ROUTINE_TIME_ZONE): string {
+  const parts = zonedParts(date, timeZone);
+  const hour12 = parts.hour % 12 === 0 ? 12 : parts.hour % 12;
+  const suffix = parts.hour < 12 ? "AM" : "PM";
+  const minute = String(parts.minute).padStart(2, "0");
+  const zone = timeZone === "America/Los_Angeles" ? "PT" : timeZone;
+  return `${parts.month}/${parts.day}/${parts.year}, ${hour12}:${minute} ${suffix} ${zone}`;
+}

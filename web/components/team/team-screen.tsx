@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 type Agent = {
   id: string;
@@ -17,27 +17,15 @@ type ModelChoice = { provider: string; modelId: string };
 
 const USES = ["chat", "tools", "routine"] as const;
 
-export function TeamScreen() {
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [providers, setProviders] = useState<Providers>({});
-  const [selected, setSelected] = useState<string>("");
+export function TeamScreen({ initialAgents, providers }: { initialAgents: Agent[]; providers: Providers }) {
+  const [agents, setAgents] = useState<Agent[]>(initialAgents);
+  const [selected, setSelected] = useState<string>(initialAgents.find((agent) => agent.is_chief)?.id ?? initialAgents[0]?.id ?? "");
   const [models, setModels] = useState<Record<string, ModelChoice>>({
     chat: { provider: "google", modelId: "gemini-2.5-flash" },
     tools: { provider: "google", modelId: "gemini-2.5-flash" },
     routine: { provider: "google", modelId: "gemini-2.5-flash" },
   });
   const [saved, setSaved] = useState<string | null>(null);
-
-  useEffect(() => {
-    void fetch("/api/bootstrap")
-      .then((response) => response.json())
-      .then((body) => {
-        setAgents(body.agents ?? []);
-        setProviders(body.providers ?? {});
-        const chief = (body.agents ?? []).find((agent: Agent) => agent.is_chief);
-        if (chief) setSelected(chief.id);
-      });
-  }, []);
 
   const agent = agents.find((item) => item.id === selected) ?? agents[0];
   const chief = agents.find((item) => item.is_chief);
@@ -61,7 +49,7 @@ export function TeamScreen() {
     setSaved(response.ok ? "Saved." : (body.error ?? "Could not save."));
   }
 
-  if (!agent) return <p className="p-8 text-[14px] text-muted">Sign in to see the team. The first visit seeds the chief of staff and three specialists.</p>;
+  if (!agent) return <p className="p-8 text-[14px] text-muted">The team has not been seeded yet. Sign out and back in as dynknight to create the chief of staff and the specialists.</p>;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">

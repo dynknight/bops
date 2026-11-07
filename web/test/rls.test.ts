@@ -182,3 +182,33 @@ test("claiming due routines is idempotent for the same slot", async () => {
   );
   await db.close();
 });
+
+test("9:00 America/Los_Angeles is not due at 09:00 UTC, and a repeated add key is one row", async () => {
+  const db = await createTestDb();
+  await seedOwner(db);
+  await asSuper(db);
+  const agent = await db.query<{ id: string }>("select id from public.agents where slug = 'chief'");
+  await db.query(
+    `insert into public.routines (owner_id, agent_id, name, prompt, cadence, timezone, next_run_at, client_key)
+     values ($1, $2, 'Morning', 'Check the news', '{"kind":"daily_at","hour":9,"minute":0}'::jsonb, 'America/Los_Angeles', '2026-11-08T17:00:00Z', 'key-1')`,
+    [OWNER, agent.rows[0].id],
+  );
+  await setAuth(db, "service_role");
+  const tooEarly = await db.query("select * from public.claim_due_routines('2026-11-08T09:00:00Z')");
+  assert.equal(tooEarly.rows.length, 0);
+  const atNinePacific = await db.query("select * from public.claim_due_routines('2026-11-08T17:00:00Z')");
+  assert.equal(atNinePacific.rows.length, 1);
+
+  await setAuth(db, "authenticated", OWNER);
+  await assert.rejects(
+    db.query(
+      `insert into public.routines (owner_id, agent_id, name, prompt, cadence, timezone, next_run_at, client_key)
+       values ($1, $2, 'Morning', 'Check the news', '{"kind":"daily_at","hour":9,"minute":0}'::jsonb, 'America/Los_Angeles', '2026-11-09T17:00:00Z', 'key-1')`,
+      [OWNER, agent.rows[0].id],
+    ),
+    /duplicate|unique/i,
+  );
+  const removed = await db.query("delete from public.routines where client_key = 'key-1' returning id");
+  assert.equal(removed.rows.length, 1);
+  await db.close();
+});
