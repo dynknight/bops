@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
@@ -9,7 +9,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 export async function createTestDb() {
   const db = new PGlite({ extensions: { pgcrypto } });
   await db.exec(readFileSync(join(root, "test/sql/auth_shim.sql"), "utf8"));
-  await db.exec(readFileSync(join(root, "supabase/migrations/0001_bops_web.sql"), "utf8"));
+  const migrations = readdirSync(join(root, "supabase/migrations")).filter((name) => name.endsWith(".sql")).sort();
+  for (const name of migrations) {
+    await db.exec(readFileSync(join(root, "supabase/migrations", name), "utf8"));
+  }
   return db;
 }
 

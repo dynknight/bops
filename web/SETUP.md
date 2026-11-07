@@ -15,7 +15,7 @@ There is no Mac app, Electron shell, Keychain, Orgo computer, phone, voice, SMS,
 5. Copy the **anon public** key. That is `NEXT_PUBLIC_SUPABASE_ANON_KEY`. It is safe in the browser. Row level security limits it to your rows.
 6. Copy the **service_role** key. That is `SUPABASE_SERVICE_ROLE_KEY`. Put it only in Vercel, never in client code and never in git.
 7. Open **SQL Editor → New query**.
-8. Paste the full contents of `supabase/migrations/0001_bops_web.sql` and run it. You should see success and no error.
+8. Paste each file in `supabase/migrations/` into the editor, in name order, and run it. Start with `0001_bops_web.sql`. If that file is already applied, run `0002_routine_idempotency.sql` only. You should see success and no error.
 9. The migration inserts one allowlist row, `dynknight`, and rejects every other GitHub login at the table check.
 
 ## 2. GitHub OAuth app
