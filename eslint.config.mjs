@@ -21,6 +21,8 @@ const eslintConfig = defineConfig([
     "vendor/**",
     // React and Tailwind, prebuilt for apps bots make (scripts/build-made-app-runtime.sh).
     "public/made-apps/**",
+    // The hosted prototype has its own Next app, lint, and types.
+    "web/**",
   ]),
 ]);
 

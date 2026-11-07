@@ -1,0 +1,26 @@
+name: Bops Web dispatcher
+
+on:
+  schedule:
+    # Hobby Vercel cron cannot run more than once a day. This calls the same
+    # dispatcher every 15 minutes. A duplicate call does not run a slot twice.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Claim due routines
+        env:
+          URL: ${{ secrets.BOPS_WEB_CRON_URL }}
+          SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$URL" ] || [ -z "$SECRET" ]; then
+            echo "BOPS_WEB_CRON_URL or CRON_SECRET is unset. Skipping."
+            exit 0
+          fi
+          curl --fail-with-body --silent --show-error --request POST "$URL" --header "Authorization: Bearer $SECRET"
