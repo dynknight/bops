@@ -49,7 +49,7 @@ export function TeamScreen({ initialAgents, providers }: { initialAgents: Agent[
     setSaved(response.ok ? "Saved." : (body.error ?? "Could not save."));
   }
 
-  if (!agent) return <p className="p-8 text-[14px] text-muted">The team has not been seeded yet. Sign out and back in as dynknight to create the chief of staff and the specialists.</p>;
+  if (!agent) return <p className="p-8 text-[14px] text-muted">The team has not been seeded yet.</p>;
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">

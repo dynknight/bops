@@ -1,6 +1,6 @@
 /**
- * Owner gate for this personal prototype.
- * The GitHub login is fixed. There is no environment override.
+ * Owner identity for this personal prototype.
+ * The GitHub login stays dynknight. The web app opens as that owner with no sign-in screen.
  */
 
 export const OWNER_GITHUB_LOGIN = "dynknight";

@@ -1,22 +1,18 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import "server-only";
+import { createClient } from "@supabase/supabase-js";
+import { getOwnerSession } from "../auth/owner-session-live";
 import { requirePublicSupabaseEnv } from "./env";
 
+/** Anon key plus the dynknight access token, so row level security still applies. */
 export async function createUserClient() {
   const { url, anonKey } = requirePublicSupabaseEnv();
-  const cookieStore = await cookies();
-  return createServerClient(url, anonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          for (const { name, value, options } of cookiesToSet) cookieStore.set(name, value, options);
-        } catch {
-          // Server Components cannot always write cookies. The proxy refreshes the session.
-        }
-      },
+  const session = await getOwnerSession();
+  if (!session) throw new Error("The owner session is not available.");
+  return createClient(url, anonKey, {
+    accessToken: async () => {
+      const current = await getOwnerSession();
+      if (!current) throw new Error("The owner session is not available.");
+      return current.accessToken;
     },
   });
 }
