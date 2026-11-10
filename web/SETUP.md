@@ -18,22 +18,15 @@ There is no Mac app, Electron shell, Keychain, Orgo computer, phone, voice, SMS,
 8. Paste each file in `supabase/migrations/` into the editor, in name order, and run it. Start with `0001_bops_web.sql`. If that file is already applied, run `0002_routine_idempotency.sql` only. You should see success and no error.
 9. The migration inserts one allowlist row, `dynknight`, and rejects every other GitHub login at the table check.
 
-## 2. GitHub OAuth app
+## 2. Owner
 
-1. Open [https://github.com/settings/developers](https://github.com/settings/developers) while logged in as **dynknight**.
-2. **OAuth Apps → New OAuth App**.
-3. Application name: `Bops Web`.
-4. Homepage URL: `http://localhost:3000` for now. Change it to the Vercel URL after the first deploy.
-5. Authorization callback URL: `https://<project-ref>.supabase.co/auth/v1/callback`. The project ref is the subdomain of the Supabase URL (`https://<project-ref>.supabase.co`).
-6. Register the app. Copy the **Client ID**.
-7. **Generate a new client secret** and copy it. GitHub shows it once.
-8. In Supabase, open **Authentication → Providers → GitHub**. Enable it. Paste the client id and secret. Save.
-9. Open **Authentication → URL configuration**.
-10. Site URL: `http://localhost:3000` until the Vercel URL exists.
-11. Add these redirect URLs:
-    - `http://localhost:3000/auth/callback`
-    - `https://<your-app>.vercel.app/auth/callback` (add this after Vercel assigns the hostname)
-12. Only the GitHub user `dynknight` gets a profile. Any other login is deleted and sent back to the login page.
+There is no sign-in screen and no GitHub OAuth. The app is single-tenant.
+
+On each server instance, the service role key (server only) finds the existing `dynknight` profile and opens a Supabase session for that user. Queries from the app use the anon key with that user's access token, so row level security and approval decisions still see `auth.uid()`. The browser never receives the service role key.
+
+The profile id is the `owner_id` on agents, chats, routines, and usage. The server reuses that row. It does not create a second owner when the profile is already there.
+
+A brand-new database with no profile and no dynknight auth user gets one user, one profile, and the four agents. If either lookup fails, the server stops instead of inventing another owner.
 
 ## 3. Google AI Studio key
 
@@ -91,8 +84,7 @@ That value is `CRON_SECRET`. The dispatcher refuses every request when it is uns
 5. Add every variable from the list below. Leave optional keys empty.
 6. Deploy.
 7. Copy the deployment hostname (`https://<name>.vercel.app`).
-8. Put that hostname in the Supabase Site URL, in the redirect allow list as `https://<name>.vercel.app/auth/callback`, and in the GitHub OAuth app homepage URL.
-9. Open the site and choose **Continue with GitHub**. Sign in as `dynknight`. The first login creates your profile and four agents: Chief, Research, Inbox, and Social.
+8. Open the site. It lands on Chat with no sign-in. Existing agents, chats, routines, and usage stay on the dynknight profile. A new database gets Chief, Research, Inbox, and Social on first open.
 
 ### Hobby cron is once a day
 
@@ -107,7 +99,7 @@ To claim routines every 15 minutes without leaving Hobby:
 
 The route claims due rows with `FOR UPDATE SKIP LOCKED` and a unique `(routine_id, slot_at)` dispatch. A second caller in the same slot inserts nothing and starts no second run. Missed slots are skipped so a quiet period does not burst a backlog of model calls.
 
-Workflows keep running after you close the browser. Approval waits use a Workflow hook. Only your signed-in session can resume it, and the database refuses the service role and anyone who is not `dynknight`.
+Workflows keep running after you close the browser. Approval waits use a Workflow hook. The server opens the dynknight session before it decides an approval. The database still refuses the service role and anyone who is not that profile.
 
 ## 9. Local check
 
@@ -130,7 +122,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | browser and server | yes | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser and server | yes | Supabase anon key, limited by RLS |
-| `SUPABASE_SERVICE_ROLE_KEY` | server only | yes | Workflows, cron, and approval execution |
+| `SUPABASE_SERVICE_ROLE_KEY` | server only | yes | Opens the dynknight session, plus workflows, cron, and approval execution |
 | `CRON_SECRET` | server only | yes | Bearer token for the dispatcher |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | server only | yes for chat | Gemini free-tier default |
 | `OPENAI_API_KEY` | server only | no | Enables the OpenAI adapter |
@@ -145,7 +137,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 No provider key uses a `NEXT_PUBLIC_` name. The health route reports which providers are on, as booleans only.
 
-## What you can do after sign-in
+## What you can do
 
 - Chat with the chief of staff or a specialist. Messages, runs, steps, and token counts are stored.
 - Edit a name, a role, the "How I work" persona, and the model for chat, tools, and routines.

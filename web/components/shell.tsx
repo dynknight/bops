@@ -33,9 +33,6 @@ export function Shell({ login, children }: { login: string; children: React.Reac
         </nav>
         <div className="mt-auto px-2 text-[11.5px] leading-4 text-muted">
           <div>{login}</div>
-          <form action="/api/auth/sign-out" method="post" className="mt-2">
-            <button className="text-[12px] font-medium text-ink">Sign out</button>
-          </form>
           <p className="mt-3">Adapted from Bops. Copyright 2026 Nick Vasilescu and Organic Intelligence, Inc. FSL-1.1-ALv2.</p>
         </div>
       </aside>
